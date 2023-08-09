@@ -8,16 +8,17 @@ from logger import log
 from pynput import keyboard
 from threading import Lock, Thread
 
-from tessie import TessieApi
-from util import has_arg
+from tessie import MockTessieApi, TessieApi, TessieInterface
+from util import fn, has_arg
 
 mutex = Lock()
 tesla_ac_activation_key = None
 tessie_api = None
 ac_duration_seconds = None
+use_mock_tessie_api = True
 
 
-def climate_sequence(key):
+def climate_sequence(key, tessie_interface: TessieInterface):
     if str(key) == tesla_ac_activation_key:
         log.info("tesla ac activation key pressed")
         if mutex.locked():
@@ -25,17 +26,18 @@ def climate_sequence(key):
             return
         mutex.acquire()
         log.info("starting start/stop climate sequence")
-        if not tessie_api.is_awake():
-            tessie_api.wake_up()
-        tessie_api.start_climate_control()
+        if not tessie_interface.is_awake():
+            tessie_interface.wake_up()
+        tessie_interface.start_climate_control()
         time.sleep(ac_duration_seconds)
-        tessie_api.stop_climate_control()
+        tessie_interface.stop_climate_control()
         mutex.release()
         log.info("finished start/stop climate sequence")
 
 
 def on_press(key):
-    Thread(target=climate_sequence, args=(key,)).start()
+    ti = MockTessieApi() if use_mock_tessie_api else tessie_api
+    Thread(target=climate_sequence, args=(key, ti, )).start()
 
 
 def program_configure():
@@ -63,12 +65,14 @@ def main():
     log.info(f"received program arguments: {sys.argv[1:]}")
 
     cfg = program_configure()
-    
+
     tessie_api = TessieApi(cfg["host"], cfg["vin"], cfg["access_token"])
     tesla_ac_activation_key = cfg["button_code"]
     ac_duration_seconds = cfg["ac_duration_seconds"]
 
-    log.info(f"running with button {tesla_ac_activation_key} and ac duration {ac_duration_seconds}s")
+    log.info(
+        f"running with button {tesla_ac_activation_key} and ac duration {ac_duration_seconds}s"
+    )
 
     fn(has_arg("is_awake"), tessie_api.is_awake)
     fn(has_arg("wake"), tessie_api.wake_up)
@@ -77,12 +81,6 @@ def main():
 
     with keyboard.Listener(on_press=on_press) as listener:
         listener.join()
-
-
-def fn(cond: bool, func):
-    if cond:
-        func()
-        os._exit(0)
 
 
 if __name__ == "__main__":

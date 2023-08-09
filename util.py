@@ -1,3 +1,4 @@
+import os
 import sys
 
 
@@ -6,3 +7,9 @@ def has_arg(flag: str):
         if arg == flag:
             return True
     return False
+
+
+def fn(cond: bool, func):
+    if cond:
+        func()
+        os._exit(0)
