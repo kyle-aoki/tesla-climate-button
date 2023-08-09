@@ -1,0 +1,4 @@
+sudo cp -i /path/to/your_script.py /bin
+sudo crontab -e
+@reboot python /bin/your_script.py &
+sudo reboot
