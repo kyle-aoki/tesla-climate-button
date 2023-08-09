@@ -16,6 +16,7 @@ tesla_ac_activation_key = keyboard.Key.f12
 tessie_api = None
 ac_duration_seconds = 20
 
+
 def climate_sequence(key):
     if mutex.locked():
         log.info("mutex locked, ignoring ac activation key press")
@@ -31,8 +32,9 @@ def climate_sequence(key):
         mutex.release()
         log.info("finished start/stop climate sequence")
 
+
 def on_press(key):
-    Thread(target = climate_sequence, args = (key, )).start()
+    Thread(target=climate_sequence, args=(key,)).start()
 
 
 def main():
@@ -45,21 +47,21 @@ def main():
     for k in cfg:
         if not cfg[k]:
             raise Exception(f"did not find {k} in config file")
-    tessie_api = TessieApi(cfg['host'], cfg['vin'], cfg['access_token'])
+    tessie_api = TessieApi(cfg["host"], cfg["vin"], cfg["access_token"])
 
-    if has_arg("is_awake"): fn(tessie_api.is_awake)
-    if has_arg("wake"): fn(tessie_api.wake_up)
-    if has_arg("start_climate"): fn(tessie_api.start_climate_control)
-    if has_arg("stop_climate"): fn(tessie_api.stop_climate_control)
+    fn(has_arg("is_awake"), tessie_api.is_awake)
+    fn(has_arg("wake"), tessie_api.wake_up)
+    fn(has_arg("start_climate"), tessie_api.start_climate_control)
+    fn(has_arg("stop_climate"), tessie_api.stop_climate_control)
 
-    else:
-        with keyboard.Listener(on_press=on_press) as listener:
-            listener.join()
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
 
 
-def fn(func):
-    func()
-    os._exit(0)
+def fn(cond: bool, func):
+    if cond:
+        func()
+        os._exit(0)
 
 
 if __name__ == "__main__":
