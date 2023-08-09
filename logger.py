@@ -2,11 +2,7 @@ import sys
 import logging
 from logging.handlers import RotatingFileHandler
 
-def has_verbose_flag():
-    for arg in sys.argv:
-        if arg == "-v":
-            return True
-    return False
+from util import has_arg
 
 def configure_logger():
     formatter = logging.Formatter(
@@ -15,7 +11,7 @@ def configure_logger():
     )
     logger = logging.getLogger('tesla_ac_button_logger')
     logger.setLevel(logging.INFO)
-    if has_verbose_flag():
+    if has_arg("-v"):
         stdout = logging.StreamHandler(stream=sys.stdout)
         stdout.setFormatter(formatter)
         logger.addHandler(stdout)
