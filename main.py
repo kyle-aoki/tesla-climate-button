@@ -37,16 +37,25 @@ def on_press(key):
     Thread(target=climate_sequence, args=(key,)).start()
 
 
+def program_configure():
+    log.info("configuring program")
+    cfg_file = sys.argv[1]
+    if not cfg_file:
+        raise Exception("must supply config file: python3 main.py <path-to-cfg-file>")
+    cfg = yaml.safe_load(Path(cfg_file).read_text())
+    cfg_file_properies = ["host", "vin", "access_token"]
+    for p in cfg_file_properies:
+        if p not in cfg:
+            raise Exception(f"did not find {p} in config file")
+    return cfg
+
+
 def main():
     global tessie_api
     log.info("running tesla-ac-button program")
-    cfg_file = sys.argv[1]
-    if not cfg_file:
-        raise Exception("supply config file: python3 main.py <path-to-cfg-file>")
-    cfg = yaml.safe_load(Path(cfg_file).read_text())
-    for k in cfg:
-        if not cfg[k]:
-            raise Exception(f"did not find {k} in config file")
+    log.info(f"received program arguments: {sys.argv[1:]}")
+
+    cfg = program_configure()
     tessie_api = TessieApi(cfg["host"], cfg["vin"], cfg["access_token"])
 
     fn(has_arg("is_awake"), tessie_api.is_awake)
@@ -69,5 +78,5 @@ if __name__ == "__main__":
         try:
             main()
         except Exception as e:
-            log.error("main function threw an exception: %s", str(e))
+            log.error(f"main function threw an exception: {str(e)}")
         time.sleep(5)
