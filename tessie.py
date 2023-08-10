@@ -84,5 +84,9 @@ class MockTessieApi(TessieInterface):
 
     def stop_climate_control(self):
         log.info("mock stop_climate_control")
+        return
+    
+    def get_state(self):
+        log.info("mock get_state")
         ex = {"drive_state": {"shift_state": None}}
         return ex

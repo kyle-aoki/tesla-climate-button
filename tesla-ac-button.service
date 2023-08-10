@@ -3,7 +3,7 @@ Description=turn tesla ac on when target button pressed
 After=network.target
 
 [Service]
-ExecStart=sudo DISPLAY=:0 /usr/bin/python3 /home/ubuntu/tesla-ac-button/main.py /home/ubuntu/tesla-ac-button/cfg.yaml
+ExecStart=sudo /usr/bin/python3 /home/ubuntu/tesla-ac-button/main.py /home/ubuntu/tesla-ac-button/cfg.yaml
 WorkingDirectory=/home/ubuntu/tesla-ac-button
 Restart=always
 RestartSec=10

@@ -1,11 +1,9 @@
-import os
 from pathlib import Path
 import sys
 import time
 
 import yaml
 from logger import log
-from pynput import keyboard
 from threading import Lock, Thread
 
 from tessie import MockTessieApi, TessieApi, TessieInterface
@@ -14,39 +12,36 @@ from util import fn, has_arg
 mutex = Lock()
 tessie_api = None
 ac_duration_seconds = None
-use_mock_tessie_api = False
+use_mock_tessie_api = True
 log_all_keys = False
 
 
-def climate_sequence(key, tessie_interface: TessieInterface):
-    if log_all_keys:
-        log.info(f"key pressed: {key}")
-    if key == keyboard.KeyCode.from_char("2"):
-        log.info("tesla ac activation key pressed")
-        if mutex.locked():
-            log.info("mutex locked, ignoring ac activation key press")
-            return
-        mutex.acquire()
-        log.info("starting start/stop climate sequence")
-        if not tessie_interface.is_awake():
-            tessie_interface.wake_up()
-        tessie_interface.start_climate_control()
-        log.info(f"waiting {ac_duration_seconds} seconds to turn climate off")
-        time.sleep(ac_duration_seconds)
-        state = tessie_api.get_state()
-        ds, ss = "drive_state", "shift_state"
-        if state and ds in state and ss in state[ds] and state[ds][ss] == None:
-            log.info("car is not being driven, turning climate off")
-            tessie_interface.stop_climate_control()
-        else:
-            log.info("car is being driven, will not turn climate off")
-        mutex.release()
-        log.info("finished start/stop climate sequence")
+def climate_sequence(tessie_interface: TessieInterface):
+    log.info("tesla ac activation key pressed")
+    if mutex.locked():
+        log.info("mutex locked, ignoring ac activation key press")
+        return
+    mutex.acquire()
+    log.info("starting start/stop climate sequence")
+    if not tessie_interface.is_awake():
+        tessie_interface.wake_up()
+    tessie_interface.start_climate_control()
+    log.info(f"waiting {ac_duration_seconds} seconds to turn climate off")
+    time.sleep(ac_duration_seconds)
+    state = tessie_api.get_state()
+    ds, ss = "drive_state", "shift_state"
+    if state and ds in state and ss in state[ds] and state[ds][ss] == None:
+        log.info("car is not being driven, turning climate off")
+        tessie_interface.stop_climate_control()
+    else:
+        log.info("car is being driven, will not turn climate off")
+    mutex.release()
+    log.info("finished start/stop climate sequence")
 
 
-def on_press(key):
+def on_press():
     ti = MockTessieApi() if use_mock_tessie_api else tessie_api
-    Thread(target=climate_sequence, args=(key, ti, )).start()
+    Thread(target=climate_sequence, args=(ti, )).start()
 
 
 def program_configure():
@@ -87,8 +82,13 @@ def main():
     fn(has_arg("state"), lambda: log.info(f'shift_state: {tessie_api.get_state()["drive_state"]["shift_state"]}'))
 
     log.info("awaiting key press")
-    with keyboard.Listener(on_press=on_press) as listener:
-        listener.join()
+    latest = time.time()
+    with open('/dev/input/event3','rb') as f:
+        while (_ := f.read(1)):
+            if time.time() - latest < 1:
+                continue
+            latest = time.time()
+            on_press()
 
 
 if __name__ == "__main__":
@@ -97,4 +97,5 @@ if __name__ == "__main__":
             main()
         except Exception as e:
             log.error(f"main function threw an exception: {str(e)}")
+        log.info("waiting 10 seconds before starting program again")
         time.sleep(10)
