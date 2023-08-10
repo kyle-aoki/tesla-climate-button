@@ -12,7 +12,7 @@ from util import fn, has_arg
 mutex = Lock()
 tessie_api = None
 ac_duration_seconds = None
-use_mock_tessie_api = True
+use_mock_tessie_api = False
 log_all_keys = False
 
 
