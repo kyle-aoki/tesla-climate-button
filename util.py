@@ -2,14 +2,16 @@ import os
 import sys
 
 
-def has_arg(flag: str):
+def has_arg(target_arg: str):
     for arg in sys.argv:
-        if arg == flag:
+        if arg == target_arg:
             return True
     return False
 
 
-def fn(cond: bool, func):
-    if cond:
-        func()
+def cli(cmd: str, func):
+    if has_arg(cmd):
+        output = func()
+        if output:
+            print(output)
         os._exit(0)

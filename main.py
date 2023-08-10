@@ -7,13 +7,12 @@ from logger import log
 from threading import Lock, Thread
 
 from tessie import MockTessieApi, TessieApi, TessieInterface
-from util import fn, has_arg
+from util import cli
 
 mutex = Lock()
 tessie_api = None
 ac_duration_seconds = None
 use_mock_tessie_api = False
-log_all_keys = False
 
 
 def climate_sequence(tessie_interface: TessieInterface):
@@ -21,27 +20,34 @@ def climate_sequence(tessie_interface: TessieInterface):
     if mutex.locked():
         log.info("mutex locked, ignoring ac activation key press")
         return
-    mutex.acquire()
-    log.info("starting start/stop climate sequence")
-    if not tessie_interface.is_awake():
-        tessie_interface.wake_up()
-    tessie_interface.start_climate_control()
-    log.info(f"waiting {ac_duration_seconds} seconds to turn climate off")
-    time.sleep(ac_duration_seconds)
-    state = tessie_api.get_state()
-    ds, ss = "drive_state", "shift_state"
-    if state and ds in state and ss in state[ds] and state[ds][ss] == None:
-        log.info("car is not being driven, turning climate off")
-        tessie_interface.stop_climate_control()
-    else:
-        log.info("car is being driven, will not turn climate off")
-    mutex.release()
-    log.info("finished start/stop climate sequence")
+    with mutex:
+        log.info("starting start/stop climate sequence")
+        if not tessie_interface.is_awake():
+            tessie_interface.wake_up()
+        tessie_interface.start_climate_control()
+        log.info(f"waiting {ac_duration_seconds} seconds to turn climate off")
+        time.sleep(ac_duration_seconds)
+        state = tessie_api.get_state()
+        ds, ss = "drive_state", "shift_state"
+        if not (state and ds in state and ss in state[ds]):
+            log.error(
+                "received an unexpected response from get_state, turning climate off"
+            )
+            tessie_interface.stop_climate_control()
+        elif state[ds][ss] == None:
+            log.info("car is not being driven, turning climate off")
+            tessie_interface.stop_climate_control()
+        elif state[ds][ss] in ["P", "D", "R", "N"]:
+            log.info("car is being used, will not turn climate off")
+        else:
+            log.info(f"unknown shift state: {state[ds][ss]}, turning climate off")
+            tessie_interface.stop_climate_control()
+        log.info("finished start/stop climate sequence")
 
 
 def on_press():
     ti = MockTessieApi() if use_mock_tessie_api else tessie_api
-    Thread(target=climate_sequence, args=(ti, )).start()
+    Thread(target=climate_sequence, args=(ti,)).start()
 
 
 def program_configure():
@@ -71,20 +77,23 @@ def main():
     tessie_api = TessieApi(cfg["host"], cfg["vin"], cfg["access_token"])
     ac_duration_seconds = cfg["ac_duration_seconds"]
 
-    log.info(
-        f"running with ac duration {ac_duration_seconds}s"
-    )
+    log.info(f"running with ac duration {ac_duration_seconds}s")
 
-    fn(has_arg("is_awake"), tessie_api.is_awake)
-    fn(has_arg("wake"), tessie_api.wake_up)
-    fn(has_arg("start_climate"), tessie_api.start_climate_control)
-    fn(has_arg("stop_climate"), tessie_api.stop_climate_control)
-    fn(has_arg("state"), lambda: log.info(f'shift_state: {tessie_api.get_state()["drive_state"]["shift_state"]}'))
+    cli("is_awake", tessie_api.is_awake)
+    cli("wake", tessie_api.wake_up)
+    cli("start_climate", tessie_api.start_climate_control)
+    cli("stop_climate", tessie_api.stop_climate_control)
+    cli(
+        "state",
+        lambda: log.info(
+            f'shift_state: {tessie_api.get_state()["drive_state"]["shift_state"]}'
+        ),
+    )
 
     log.info("awaiting key press")
     latest = time.time()
-    with open('/dev/input/event3','rb') as f:
-        while (_ := f.read(1)):
+    with open("/dev/input/event3", "rb") as f:
+        while _ := f.read(1):
             if time.time() - latest < 1:
                 continue
             latest = time.time()
