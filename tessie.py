@@ -21,6 +21,10 @@ class TessieInterface(ABC):
     def stop_climate_control(self):
         return
 
+    @abstractmethod
+    def get_state(self):
+        pass
+
 
 class TessieApi(TessieInterface):
     headers = {}
@@ -33,11 +37,13 @@ class TessieApi(TessieInterface):
     def __format_endpoint(self, endpoint: str) -> str:
         return f"{self.host}/{self.vin}{endpoint}"
 
-    def __get(self, endpoint: str):
+    def __get(self, endpoint: str, log_response_length: bool = False):
         endpoint = self.__format_endpoint(endpoint)
         response = requests.get(endpoint, headers=self.headers)
         json_response = json.loads(response.text)
-        log.info(f"{endpoint} -- {json_response}")
+        log.info(
+            f"GET {endpoint} -- {f'response length: {len(str(json_response))}' if log_response_length else json_response}"
+        )
         return json_response
 
     # asleep, waiting_for_sleep, awake
@@ -58,6 +64,10 @@ class TessieApi(TessieInterface):
         log.info("stopping climate")
         self.__get("/command/stop_climate")
 
+    def get_state(self):
+        log.info("getting vehicle state")
+        return self.__get("/state", log_response_length=True)
+
 
 class MockTessieApi(TessieInterface):
     def is_awake(self) -> bool:
@@ -74,4 +84,5 @@ class MockTessieApi(TessieInterface):
 
     def stop_climate_control(self):
         log.info("mock stop_climate_control")
-        return
+        ex = {"drive_state": {"shift_state": None}}
+        return ex

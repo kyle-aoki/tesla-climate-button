@@ -12,14 +12,16 @@ from tessie import MockTessieApi, TessieApi, TessieInterface
 from util import fn, has_arg
 
 mutex = Lock()
-tesla_ac_activation_key = None
 tessie_api = None
 ac_duration_seconds = None
 use_mock_tessie_api = True
+log_all_keys = False
 
 
 def climate_sequence(key, tessie_interface: TessieInterface):
-    if str(key) == tesla_ac_activation_key:
+    if log_all_keys:
+        log.info(f"key pressed: {key}")
+    if key == keyboard.KeyCode.from_char("2"):
         log.info("tesla ac activation key pressed")
         if mutex.locked():
             log.info("mutex locked, ignoring ac activation key press")
@@ -29,8 +31,15 @@ def climate_sequence(key, tessie_interface: TessieInterface):
         if not tessie_interface.is_awake():
             tessie_interface.wake_up()
         tessie_interface.start_climate_control()
+        log.info(f"waiting {ac_duration_seconds} seconds to turn climate off")
         time.sleep(ac_duration_seconds)
-        tessie_interface.stop_climate_control()
+        state = tessie_api.get_state()
+        ds, ss = "drive_state", "shift_state"
+        if state and ds in state and ss in state[ds] and state[ds][ss] == None:
+            log.info("car is not being driven, turning climate off")
+            tessie_interface.stop_climate_control()
+        else:
+            log.info("car is being driven, will not turn climate off")
         mutex.release()
         log.info("finished start/stop climate sequence")
 
@@ -41,7 +50,6 @@ def on_press(key):
 
 
 def program_configure():
-    log.info("configuring program")
     cfg_file = sys.argv[1]
     if not cfg_file:
         raise Exception("must supply config file: python3 main.py <path-to-cfg-file>")
@@ -50,7 +58,6 @@ def program_configure():
         "host",
         "vin",
         "access_token",
-        "button_code",
         "ac_duration_seconds",
     ]
     for p in cfg_file_properies:
@@ -60,24 +67,24 @@ def program_configure():
 
 
 def main():
-    global tessie_api, tesla_ac_activation_key, ac_duration_seconds
+    global tessie_api, ac_duration_seconds
     log.info("running tesla-ac-button program")
     log.info(f"received program arguments: {sys.argv[1:]}")
 
     cfg = program_configure()
 
     tessie_api = TessieApi(cfg["host"], cfg["vin"], cfg["access_token"])
-    tesla_ac_activation_key = cfg["button_code"]
     ac_duration_seconds = cfg["ac_duration_seconds"]
 
     log.info(
-        f"running with button {tesla_ac_activation_key} and ac duration {ac_duration_seconds}s"
+        f"running with ac duration {ac_duration_seconds}s"
     )
 
     fn(has_arg("is_awake"), tessie_api.is_awake)
     fn(has_arg("wake"), tessie_api.wake_up)
     fn(has_arg("start_climate"), tessie_api.start_climate_control)
     fn(has_arg("stop_climate"), tessie_api.stop_climate_control)
+    fn(has_arg("state"), lambda: log.info(f'shift_state: {tessie_api.get_state()["drive_state"]["shift_state"]}'))
 
     with keyboard.Listener(on_press=on_press) as listener:
         listener.join()
@@ -89,4 +96,4 @@ if __name__ == "__main__":
             main()
         except Exception as e:
             log.error(f"main function threw an exception: {str(e)}")
-        time.sleep(5)
+        time.sleep(10)
