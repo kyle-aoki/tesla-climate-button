@@ -14,7 +14,7 @@ from util import fn, has_arg
 mutex = Lock()
 tessie_api = None
 ac_duration_seconds = None
-use_mock_tessie_api = True
+use_mock_tessie_api = False
 log_all_keys = False
 
 
@@ -86,6 +86,7 @@ def main():
     fn(has_arg("stop_climate"), tessie_api.stop_climate_control)
     fn(has_arg("state"), lambda: log.info(f'shift_state: {tessie_api.get_state()["drive_state"]["shift_state"]}'))
 
+    log.info("awaiting key press")
     with keyboard.Listener(on_press=on_press) as listener:
         listener.join()
 
