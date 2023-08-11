@@ -13,6 +13,7 @@ mutex = Lock()
 tessie_api = None
 ac_duration_seconds = None
 use_mock_tessie_api = False
+device_id = "usb-5131_2019-event-kbd"
 
 
 def climate_sequence(tessie_interface: TessieInterface):
@@ -92,7 +93,7 @@ def main():
 
     log.info("awaiting key press")
     latest = time.time()
-    with open("/dev/input/event3", "rb") as f:
+    with open(f"/dev/input/by-id/{device_id}", "rb") as f:
         while _ := f.read(1):
             if time.time() - latest < 1:
                 continue
