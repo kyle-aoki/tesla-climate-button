@@ -1,4 +1,4 @@
 host: "https://api.tessie.com"
 vin: "5YJ3E1EA2PF000000"
 access_token: "XXXXXXXXXXXXXXXXXXXXXXXXX"
-ac_duration_seconds: 600
+climate_duration_seconds: 600

@@ -1,7 +1,7 @@
-sudo cp tesla-ac-button.service /etc/systemd/system/tesla-ac-button.service
-sudo systemctl enable tesla-ac-button.service
-sudo systemctl start tesla-ac-button.service
-sudo systemctl status tesla-ac-button.service
+sudo cp tesla-climate-button.service /etc/systemd/system/tesla-climate-button.service
+sudo systemctl enable tesla-climate-button.service
+sudo systemctl start tesla-climate-button.service
+sudo systemctl status tesla-climate-button.service
 
-# sudo systemctl stop tesla-ac-button.service
-# sudo journalctl -u tesla-ac-button.service --no-pager
+# sudo systemctl stop tesla-climate-button.service
+# sudo journalctl -u tesla-climate-button.service --no-pager

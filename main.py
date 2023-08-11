@@ -11,23 +11,23 @@ from util import cli
 
 mutex = Lock()
 tessie_api = None
-ac_duration_seconds = None
+climate_duration_seconds = None
 use_mock_tessie_api = False
 device_id = "usb-5131_2019-event-kbd"
 
 
 def climate_sequence(tessie_interface: TessieInterface):
-    log.info("tesla ac activation key pressed")
+    log.info("tesla climate activation key pressed")
     if mutex.locked():
-        log.info("mutex locked, ignoring ac activation key press")
+        log.info("mutex locked, ignoring climate activation key press")
         return
     with mutex:
         log.info("starting start/stop climate sequence")
         if not tessie_interface.is_awake():
             tessie_interface.wake_up()
         tessie_interface.start_climate_control()
-        log.info(f"waiting {ac_duration_seconds} seconds to turn climate off")
-        time.sleep(ac_duration_seconds)
+        log.info(f"waiting {climate_duration_seconds} seconds to turn climate off")
+        time.sleep(climate_duration_seconds)
         state = tessie_api.get_state()
         ds, ss = "drive_state", "shift_state"
         if not (state and ds in state and ss in state[ds]):
@@ -39,7 +39,9 @@ def climate_sequence(tessie_interface: TessieInterface):
             log.info("car is not being driven, turning climate off")
             tessie_interface.stop_climate_control()
         elif state[ds][ss] in ["P", "D", "R", "N"]:
-            log.info("car is being used, will not turn climate off")
+            log.info(
+                f"car is being used (shift_state={state[ds][ss]}), will not turn climate off"
+            )
         else:
             log.info(f"unknown shift state: {state[ds][ss]}, turning climate off")
             tessie_interface.stop_climate_control()
@@ -60,7 +62,7 @@ def program_configure():
         "host",
         "vin",
         "access_token",
-        "ac_duration_seconds",
+        "climate_duration_seconds",
     ]
     for p in cfg_file_properies:
         if p not in cfg:
@@ -69,16 +71,16 @@ def program_configure():
 
 
 def main():
-    global tessie_api, ac_duration_seconds
-    log.info("running tesla-ac-button program")
+    global tessie_api, climate_duration_seconds
+    log.info("running tesla-climate-button program")
     log.info(f"received program arguments: {sys.argv[1:]}")
 
     cfg = program_configure()
 
     tessie_api = TessieApi(cfg["host"], cfg["vin"], cfg["access_token"])
-    ac_duration_seconds = cfg["ac_duration_seconds"]
+    climate_duration_seconds = cfg["climate_duration_seconds"]
 
-    log.info(f"running with ac duration {ac_duration_seconds}s")
+    log.info(f"running with ac duration {climate_duration_seconds}s")
 
     cli("is_awake", tessie_api.is_awake)
     cli("wake", tessie_api.wake_up)

@@ -7,19 +7,19 @@ from logger import log
 class TessieInterface(ABC):
     @abstractmethod
     def is_awake(self) -> bool:
-        return False
+        pass
 
     @abstractmethod
     def wake_up(self):
-        return
+        pass
 
     @abstractmethod
     def start_climate_control(self):
-        return
+        pass
 
     @abstractmethod
     def stop_climate_control(self):
-        return
+        pass
 
     @abstractmethod
     def get_state(self):
@@ -76,17 +76,13 @@ class MockTessieApi(TessieInterface):
 
     def wake_up(self):
         log.info("mock wake_up")
-        return
 
     def start_climate_control(self):
         log.info("mock start_climate_control")
-        return
 
     def stop_climate_control(self):
         log.info("mock stop_climate_control")
-        return
 
     def get_state(self):
         log.info("mock get_state")
-        ex = {"drive_state": {"shift_state": None}}
-        return ex
+        return {"drive_state": {"shift_state": None}}
