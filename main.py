@@ -9,6 +9,7 @@ from threading import Lock, Thread
 from tessie import MockTessieApi, TessieApi, TessieInterface
 from util import cli
 
+
 mutex = Lock()
 tessie_api = None
 climate_duration_seconds = None
