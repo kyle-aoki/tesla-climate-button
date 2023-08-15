@@ -5,3 +5,4 @@ sudo systemctl status tesla-climate-button.service
 
 # sudo systemctl stop tesla-climate-button.service
 # sudo journalctl -u tesla-climate-button.service --no-pager
+# sudo systemctl restart tesla-climate-button.service
