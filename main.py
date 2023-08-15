@@ -10,6 +10,7 @@ from tessie import MockTessieApi, TessieApi, TessieInterface
 from util import cli
 
 
+version = "1.2.0"
 mutex = Lock()
 tessie_api = None
 climate_duration_seconds = None
@@ -73,7 +74,8 @@ def program_configure():
 
 def main():
     global tessie_api, climate_duration_seconds
-    log.info("running tesla-climate-button program")
+    log.info(f"----------------------------------------------")
+    log.info(f"running tesla-climate-button version {version}")
     log.info(f"received program arguments: {sys.argv[1:]}")
 
     cfg = program_configure()
