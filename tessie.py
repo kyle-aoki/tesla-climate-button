@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import json
+import time
 import requests
 from logger import log
 
@@ -37,9 +38,23 @@ class TessieApi(TessieInterface):
     def __format_endpoint(self, endpoint: str) -> str:
         return f"{self.host}/{self.vin}{endpoint}"
 
+    def __get_retry(self, endpoint, headers):
+        max_attempts = 5
+        attempt = 1
+        while attempt <= max_attempts:
+            response = requests.get(endpoint, headers=headers)
+            if response.status_code == 200:
+                return response
+            log.info(
+                f"[{attempt}/{max_attempts}] got status code {response.status_code}"
+            )
+            time.sleep(10 * attempt)
+            attempt += 1
+        raise Exception(f"get request {endpoint} failed {max_attempts} times")
+
     def __get(self, endpoint: str, log_response_length: bool = False):
         endpoint = self.__format_endpoint(endpoint)
-        response = requests.get(endpoint, headers=self.headers)
+        response = self.__get_retry(endpoint, self.headers)
         json_response = json.loads(response.text)
         log.info(
             f"GET {endpoint} -- {f'response length: {len(str(json_response))}' if log_response_length else json_response}"
