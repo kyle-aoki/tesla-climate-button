@@ -10,7 +10,7 @@ from tessie import MockTessieApi, TessieApi, TessieInterface
 from util import cli
 
 
-version = "1.2.0"
+version = "1.2.1"
 mutex = Lock()
 tessie_api = None
 climate_duration_seconds = None
@@ -18,12 +18,13 @@ use_mock_tessie_api = False
 device_id = "usb-5131_2019-event-kbd"
 
 
-def climate_sequence(tessie_interface: TessieInterface):
+def climate_sequence():
     log.info("tesla climate activation key pressed")
     if mutex.locked():
         log.info("mutex locked, ignoring climate activation key press")
         return
     with mutex:
+        tessie_interface = MockTessieApi() if use_mock_tessie_api else tessie_api
         log.info("starting start/stop climate sequence")
         if not tessie_interface.is_awake():
             tessie_interface.wake_up()
@@ -45,14 +46,13 @@ def climate_sequence(tessie_interface: TessieInterface):
                 f"car is being used (shift_state={state[ds][ss]}), will not turn climate off"
             )
         else:
-            log.info(f"unknown shift state: {state[ds][ss]}, turning climate off")
+            log.error(f"unknown shift state: {state[ds][ss]}, turning climate off")
             tessie_interface.stop_climate_control()
         log.info("finished start/stop climate sequence")
 
 
 def on_press():
-    ti = MockTessieApi() if use_mock_tessie_api else tessie_api
-    Thread(target=climate_sequence, args=(ti,)).start()
+    Thread(target=climate_sequence, args=()).start()
 
 
 def program_configure():
